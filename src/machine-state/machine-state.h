@@ -3,9 +3,11 @@
 
 #include <stdbool.h>
 
+#define ADDRESS_SPACE_SIZE 0x2000
+
 struct MachineState {
     bool isUnconditionalInfiniteLoop;
-    unsigned char memory[0x2000];
+    unsigned char memory[ADDRESS_SPACE_SIZE];
     unsigned short PC;
     unsigned char A;
     unsigned long simulationStartTimeMs;

@@ -2,15 +2,9 @@
 #include <stdbool.h>
 #include <string.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 struct ProgramInput getProgramInput(int argc, const char * argv[]) {
-    struct ProgramInput errorResult = {
-        true,
-        false,
-        NULL,
-        NULL
-    };
-
     const char* binaryFilePath = NULL;
     const char* symbolsFilePath = NULL;
 
@@ -28,14 +22,14 @@ struct ProgramInput getProgramInput(int argc, const char * argv[]) {
             if (strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "--help") == 0) {
                 if (helpFlag) {
                     printf("Error: help flag was used more than once.\n");
-                    return errorResult;
+                    exit(1);
                 } else {
                     helpFlag = true;
                 }
             } else if (strcmp(argv[i], "-s") == 0 || strcmp(argv[i], "--symbols") == 0) {
                 if (symbolsFlag) {
                     printf("Error: symbols flag was used more than once.\n");
-                    return errorResult;
+                    exit(1);
                 } else {
                     symbolsFlag = true;
                     expectNextArgToBeSymbolsFilePath = true;
@@ -43,17 +37,18 @@ struct ProgramInput getProgramInput(int argc, const char * argv[]) {
             } else if (strcmp(argv[i], "-d") == 0 || strcmp(argv[i], "--debug") == 0) {
                 if (debugFlag) {
                     printf("Error: debug flag was used more than once.\n");
-                    return errorResult;
+                    exit(1);
                 } else {
                     debugFlag = true;
                 }
             } else {
                 printf("Error: unknown flag \"%s\".\n", argv[i]);
-                return errorResult;
+                exit(1);
             }
         } else {
             if (binaryFilePath != NULL) {
                 printf("Error: binary file path was provided more than once.\n");
+                exit(1);
             } else {
                 binaryFilePath = argv[i];
             }
@@ -70,17 +65,17 @@ struct ProgramInput getProgramInput(int argc, const char * argv[]) {
         printf("-d or --debug - runs the simulator in paused state and enables the debugger.\n");
         printf("-s [path/to/symbols.csv] or --symbols [path/to/symbols.csv] - supplies the debugger with symbols info. Without -d or --debug it is ignored.\n\n");
         printf("The symbols file must be in CSV format with three columns:\n");
-        printf("- the memory address in 4-digit hexadecimal format (0x0000 - 0x1FFF; x lowercase, A-F uppercase),\n");
-        printf("- data type (one of following: \"char\", \"int\", or \"instruction\", all lowercase),\n");
+        printf("- the memory address,\n");
+        printf("- data type (one of following: \"char\", \"int\", or \"instruction\"),\n");
         printf("- label name (0-31 characters: digits, upper- or lowercase letters, and underscores; the first character can't be a digit).\n");
-        return (struct ProgramInput) { false, false, NULL, NULL };
+        exit(0);
     } else if (expectNextArgToBeSymbolsFilePath) {
         printf("Error: labels file path was not provided.\n");
-        return errorResult;
+        exit(1);
     } else if (binaryFilePath == NULL) {
         printf("Error: binary file path was not provided.\n");
-        return errorResult;
+        exit(1);
     }
 
-    return (struct ProgramInput) { false, debugFlag, binaryFilePath, symbolsFilePath };
+    return (struct ProgramInput) { debugFlag, binaryFilePath, symbolsFilePath };
 }

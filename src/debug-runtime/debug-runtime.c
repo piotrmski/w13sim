@@ -6,11 +6,92 @@
 #include <signal.h>
 #include <stdbool.h>
 #include <ctype.h>
+#include <string.h>
+#include <errno.h>
 
 #define LABEL_NAME_MAX_LENGTH 32
 
+enum DataType {
+    DataTypeInt = 0,
+    DataTypeInstruction,
+    DataTypeChar
+};
+
 static volatile bool isPaused = true;
-static volatile bool isStepping = false;
+static bool isStepping = false;
+static char labelNames[LABEL_NAME_MAX_LENGTH][ADDRESS_SPACE_SIZE] = { { 0 } };
+static bool breakpoints[ADDRESS_SPACE_SIZE] = { false };
+static enum DataType dataTypes[ADDRESS_SPACE_SIZE] = { DataTypeInt };
+
+static char charUppercase(char ch) {
+    if (ch >= 'a' && ch <= 'z') return ch - 0x20;
+    else return ch;
+}
+
+static bool stringEqualCaseInsensitive(char* string1, char* string2) {
+    for (int i = 0;; ++i) {
+        if (charUppercase(string1[i]) != charUppercase(string2[i])) {
+            return false;
+        }
+
+        if (string1[i] == 0) {
+            return true;
+        }
+    }
+}
+
+static void parseSymbolsFile(char* path) {
+    if (path == NULL) return;
+
+    FILE* file = fopen(path, "r");
+
+    if (file == NULL) {
+        printf("Error: could not read file \"%s\".\n", path);
+        exit(1);
+    }
+
+    char line[128] = {0};
+    char* addressString;
+    char* dataTypeString;
+    char* labelName;
+    int lineNumber = 0;
+    enum DataType dataType;
+
+    while (fgets(line, 127, file) != NULL) {
+        ++lineNumber;
+
+        addressString = strtok(line, " ,\t\n");
+        dataTypeString = strtok(NULL, " ,\t\n");
+        labelName = strtok(NULL, " ,\t\n");
+
+        if (addressString == NULL) continue;
+        if (dataTypeString == NULL) {
+            printf("Error: in file \"%s\" line %d has too few columns.\n", path, lineNumber);
+            exit(1);
+        }
+
+        int addressNumber = strtol(addressString, NULL, 0);
+        if (errno != 0) {
+            printf("Error: in file \"%s\" line %d: %s could not be parsed as a number.\n", path, lineNumber, addressString);
+            exit(1);
+        }
+
+        if (stringEqualCaseInsensitive(dataTypeString, "int")) {
+            dataType = DataTypeInt;
+        } else if (stringEqualCaseInsensitive(dataTypeString, "char")) {
+            dataType = DataTypeChar;
+        } else if (stringEqualCaseInsensitive(dataTypeString, "instruction")) {
+            dataType = DataTypeInstruction;
+        } else {
+            printf("Error: in file \"%s\" line %d: unknown data type \"%s\".\n", path, lineNumber, dataTypeString);
+            exit(1);
+        }
+
+        printf("%d\t%s\t%s\n", addressNumber, dataTypeString, labelName);
+    }
+
+    fclose(file);
+}
 
 static void handleSigInt(int _) {
     if (isPaused) {
@@ -23,11 +104,6 @@ static void handleSigInt(int _) {
 
 static bool isPrintableChar(unsigned char ch) {
     return ch >= 32 && ch <= 126;
-}
-
-static char charUppercase(char ch) {
-    if (ch >= 'a' && ch <= 'z') return ch - 0x20;
-    else return ch;
 }
 
 static bool anyArgumentPresent(char* command) {
@@ -152,15 +228,17 @@ static bool parseCommand(struct MachineState* state, char* command) {
 static void interactivePrompt(struct MachineState* state) {
     printf("Paused. TODO add the same data as from command R\n");
     bool interactive = true;
+    char command[128] = {0};
     while (interactive) {
         printf("> ");
-        char command[128] = {0};
         fgets(command, 127, stdin);
         interactive = parseCommand(state, command);
     }
 }
 
-void runDebug(struct MachineState* state, const char* symbolsFilePath) {
+void runDebug(struct MachineState* state, char* symbolsFilePath) {
+    parseSymbolsFile(symbolsFilePath);
+
     printf("Starting in debug mode. Type \"h\" to list all commands or \"c\" to begin simulation. Press ^C during simulation to pause.\n");
 
     signal(SIGINT, handleSigInt);

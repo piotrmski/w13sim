@@ -27,10 +27,6 @@
 int main(int argc, const char * argv[]) {
     struct ProgramInput input = getProgramInput(argc, argv);
 
-    if (input.error) { return 1; }
-
-    if (input.binaryFilePath == NULL) { return 0; }
-
     FILE* binaryFile = fopen(input.binaryFilePath, "rb");
 
     if (binaryFile == NULL) {

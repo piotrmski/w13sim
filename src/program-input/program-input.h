@@ -4,7 +4,6 @@
 #include <stdbool.h>
 
 struct ProgramInput {
-    bool error;
     bool debugMode;
     const char* binaryFilePath;
     const char* symbolsFilePath;
