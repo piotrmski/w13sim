@@ -27,6 +27,7 @@ enum Command {
     CommandListRegisters,
     CommandAddBreakpoint,
     CommandDeleteBreakpoint,
+    CommandDeleteAllBreakpoints,
     CommandContinue,
     CommandStep,
     CommandQuit
@@ -177,6 +178,7 @@ b X   - adds a breakpoint at X,\n\
 lb    - lists all breakpoints,\n\
 d     - deletes a breakpoint at PC,\n\
 d X   - deletes a breakpoint at X,\n\
+da    - deletes all breakpoints,\n\
 c     - continues simulation,\n\
 s     - steps simulation (executes one instruction and pauses),\n\
 q     - quits.\n\
@@ -488,6 +490,22 @@ static void executeDeleteBreakpointCommand(struct MachineState* state, char* arg
     }
 }
 
+static void executeDeleteAllBreakpointsCommand() {
+    int breakpointsDeleted = 0;
+    for (int i = 0; i < ADDRESS_SPACE_SIZE; ++i) {
+        if (breakpoints[i]) {
+            ++breakpointsDeleted;
+            breakpoints[i] = false;
+        }
+    }
+
+    if (breakpointsDeleted == 0) {
+        printf("There aren't any breakpoints.\n");
+    } else {
+        printf("%d breakpoints deleted.\n", breakpointsDeleted);
+    }
+}
+
 static enum Command getCommand(char* commandName) {
     if (stringsEqualCaseInsensitive(commandName, "H")) {
         return CommandHelp;
@@ -503,6 +521,8 @@ static enum Command getCommand(char* commandName) {
         return CommandAddBreakpoint;
     } else if (stringsEqualCaseInsensitive(commandName, "D")) {
         return CommandDeleteBreakpoint;
+    } else if (stringsEqualCaseInsensitive(commandName, "DA")) {
+        return CommandDeleteAllBreakpoints;
     } else if (stringsEqualCaseInsensitive(commandName, "C")) {
         return CommandContinue;
     } else if (stringsEqualCaseInsensitive(commandName, "S")) {
@@ -563,6 +583,8 @@ static bool executeCommand(struct MachineState* state, char* fullCommand) {
             executeAddBreakpointCommand(state, argument); break;
         case CommandDeleteBreakpoint:
             executeDeleteBreakpointCommand(state, argument); break;
+        case CommandDeleteAllBreakpoints:
+            executeDeleteAllBreakpointsCommand(); break;
         case CommandContinue:
             return false;
         case CommandStep:
@@ -605,13 +627,10 @@ void runDebug(struct MachineState* state, char* symbolsFilePath) {
             endCharacterInput();
             interactivePrompt(state);
             startCharacterInput();
-            if (isStepping) {
-                step(state);
-            }
             isPaused = false;
-        } else {
-            step(state);
         }
+        
+        step(state);
     } while (!state->isUnconditionalInfiniteLoop);
 
     endCharacterInput();
