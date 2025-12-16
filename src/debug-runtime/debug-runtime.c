@@ -264,10 +264,6 @@ static bool isFirstCharOfLabel(char ch) {
     return ch == '_' || ch >= 'a' && ch <= 'z' || ch >= 'A' && ch <= 'Z';
 }
 
-static bool isNextCharOfLabel(char ch) {
-    return isFirstCharOfLabel(ch) || ch >= '0' && ch <= '9';
-}
-
 static int evaluateAddressArgument(struct MachineState* state, char* argument) {
     if (argument[0] == '+' || argument[0] == '-') {
         int offset = parseNumber(argument, "offset");
@@ -277,13 +273,13 @@ static int evaluateAddressArgument(struct MachineState* state, char* argument) {
         }
         return validateAddress(state->PC + offset, argument);
     } else if (isFirstCharOfLabel(argument[0])) {
-        int baseAddress = 0;
+        int baseAddress = -1;
         int offset = 0;
         char* offsetString = strpbrk(argument, "+-");
         char offsetStringFirstChar;
         if (offsetString != NULL) {
             offsetStringFirstChar = offsetString[0];
-            offset = parseNumber(argument, "offset");
+            offset = parseNumber(offsetString, "offset");
             if (errno != 0) {
                 errno = 0;
                 return -1;
@@ -291,10 +287,14 @@ static int evaluateAddressArgument(struct MachineState* state, char* argument) {
             offsetString[0] = 0;
         }
         for (int i = 0; i < ADDRESS_SPACE_SIZE; ++i) {
-            if (strcmp(argument, labelNames[i]) == 0) {
+            if (labelNames[i] != NULL && strcmp(argument, labelNames[i]) == 0) {
                 baseAddress = i;
                 break;
             }
+        }
+        if (baseAddress == -1) {
+            printf("Label \"%s\" does not exist.\n", argument);
+            return -1;
         }
         if (offsetString != NULL) {
             offsetString[0] = offsetStringFirstChar;
