@@ -123,6 +123,13 @@ static void parseSymbolsFile(char* path) {
         dataTypes[addressNumber] = dataType;
 
         if (labelName != NULL) {
+            for (int i = 0; i < ADDRESS_SPACE_SIZE; ++i) {
+                if (labelNames[i] != NULL && strcmp(labelName, labelNames[i]) == 0) {
+                    printf("Error: in file \"%s\" line %d: label name \"%s\" is not unique.\n", path, lineNumber, labelName);
+                    exit(1);
+                }
+            }
+
             int labelNameLength = strlen(labelName);
 
             if (labelNameLength > LABEL_NAME_MAX_LENGTH) {
@@ -237,20 +244,82 @@ static void printInstruction(struct MachineState* state, int address) {
     }
 }
 
+static int parseNumber(char* numberString, const char* numberDescription) {
+    int offset = strtol(numberString, NULL, 0);
+    if (errno != 0) {
+        printf("\"%s\" is not a valid %s.\n", numberString, numberDescription);
+    }
+    return offset;
+}
 
-static int parseAddressArgument(struct MachineState* state, char* argument) {
-    // TODO handle absolute address
-    // TODO handle relative address
-    // TODO handle label
-    // TODO handle address relative to label
+static int validateAddress(int address, char* addressExpression) {
+    if (address < 0 || address >= ADDRESS_SPACE_SIZE) {
+        printf("\"%s\" evaluates to 0x%04X which is not a valid address.\n", addressExpression, address);
+        return -1;
+    }
+    return address;
+}
+
+static bool isFirstCharOfLabel(char ch) {
+    return ch == '_' || ch >= 'a' && ch <= 'z' || ch >= 'A' && ch <= 'Z';
+}
+
+static bool isNextCharOfLabel(char ch) {
+    return isFirstCharOfLabel(ch) || ch >= '0' && ch <= '9';
+}
+
+static int evaluateAddressArgument(struct MachineState* state, char* argument) {
+    if (argument[0] == '+' || argument[0] == '-') {
+        int offset = parseNumber(argument, "offset");
+        if (errno != 0) {
+            errno = 0;
+            return -1;
+        }
+        return validateAddress(state->PC + offset, argument);
+    } else if (isFirstCharOfLabel(argument[0])) {
+        int baseAddress = 0;
+        int offset = 0;
+        char* offsetString = strpbrk(argument, "+-");
+        char offsetStringFirstChar;
+        if (offsetString != NULL) {
+            offsetStringFirstChar = offsetString[0];
+            offset = parseNumber(argument, "offset");
+            if (errno != 0) {
+                errno = 0;
+                return -1;
+            }
+            offsetString[0] = 0;
+        }
+        for (int i = 0; i < ADDRESS_SPACE_SIZE; ++i) {
+            if (strcmp(argument, labelNames[i]) == 0) {
+                baseAddress = i;
+                break;
+            }
+        }
+        if (offsetString != NULL) {
+            offsetString[0] = offsetStringFirstChar;
+        }
+        return validateAddress(baseAddress + offset, argument);
+    } else {
+        int address = parseNumber(argument, "address");
+        if (errno != 0) {
+            errno = 0;
+            return -1;
+        }
+        return validateAddress(address, argument);
+    }
     return 0;
 }
 
-static struct Range parseAddressRangeArgument(struct MachineState* state, char* argument) {
+static struct Range evaluateAddressRangeArgument(struct MachineState* state, char* argument) {
+    if (argument == NULL) {
+        return (struct Range) { state->PC, state->PC };
+    }
+
     char* startString = strtok(argument, ":");
     char* endString = strtok(NULL, "");
 
-    int start = parseAddressArgument(state, startString);
+    int start = evaluateAddressArgument(state, startString);
     if (start < 0) {
         return (struct Range) { -1, -1 };
     }
@@ -259,7 +328,7 @@ static struct Range parseAddressRangeArgument(struct MachineState* state, char* 
         return (struct Range) { start, start };
     }
 
-    int end = parseAddressArgument(state, endString);
+    int end = evaluateAddressArgument(state, endString);
     if (end < 0) {
         return (struct Range) { -1, -1 };
     }
@@ -273,7 +342,7 @@ static struct Range parseAddressRangeArgument(struct MachineState* state, char* 
 }
 
 static void executeListMemoryCommand(struct MachineState* state, char* argument) {
-    struct Range addresses = parseAddressRangeArgument(state, argument);
+    struct Range addresses = evaluateAddressRangeArgument(state, argument);
     if (addresses.start < 0) return;
 
     // TODO
@@ -327,15 +396,27 @@ static void executeListRegistersCommand(struct MachineState* state) {
 }
 
 static void executeAddBreakpointCommand(struct MachineState* state, char* argument) {
-    int address = parseAddressArgument(state, argument);
+    int address = evaluateAddressArgument(state, argument);
     if (address < 0) return;
-    // TODO
+    
+    if (breakpoints[address]) {
+        printf("Breakpoint at 0x%04X was already added.\n", address);
+    } else {
+        breakpoints[address] = true;
+        printf("Added a breakpoint at 0x%04X.\n", address);
+    }
 }
 
 static void executeDeleteBreakpointCommand(struct MachineState* state, char* argument) {
-    int address = parseAddressArgument(state, argument);
+    int address = evaluateAddressArgument(state, argument);
     if (address < 0) return;
-    // TODO
+    
+    if (breakpoints[address]) {
+        breakpoints[address] = false;
+        printf("Removed a breakpoint at 0x%04X.\n", address);
+    } else {
+        printf("There isn't a breakpoint at 0x%04X.\n", address);
+    }
 }
 
 static enum Command getCommand(char* commandName) {

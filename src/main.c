@@ -51,7 +51,7 @@ int main(int argc, const char * argv[]) {
     fclose(binaryFile);
 
     if (input.debugMode) {
-        runDebug(&state, input.symbolsFilePath);
+        runDebug(&state, (char*) input.symbolsFilePath);
     } else {
         runDefault(&state);
     }
