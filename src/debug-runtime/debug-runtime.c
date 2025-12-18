@@ -161,8 +161,48 @@ static void handleSigInt(int _) {
     }
 }
 
-static bool isPrintableChar(unsigned char ch) {
-    return ch >= 32 && ch <= 126;
+static void printCharacterOrControlCharacter(unsigned char ch) {
+    if (ch >= 32 && ch <= 126) {
+        printf("'%c'", ch);
+        return;
+    }
+
+    switch (ch) {
+        case 0: printf("NUL"); break;
+        case 1: printf("SOH"); break;
+        case 2: printf("STX"); break;
+        case 3: printf("ETX"); break;
+        case 4: printf("EOT"); break;
+        case 5: printf("ENQ"); break;
+        case 6: printf("ACK"); break;
+        case 7: printf("BEL"); break;
+        case 8: printf("BS"); break;
+        case 9: printf("TAB"); break;
+        case 10: printf("LF"); break;
+        case 11: printf("VT"); break;
+        case 12: printf("FF"); break;
+        case 13: printf("CR"); break;
+        case 14: printf("SO"); break;
+        case 15: printf("SI"); break;
+        case 16: printf("DLE"); break;
+        case 17: printf("DC1"); break;
+        case 18: printf("DC2"); break;
+        case 19: printf("DC3"); break;
+        case 20: printf("DC4"); break;
+        case 21: printf("NAK"); break;
+        case 22: printf("SYN"); break;
+        case 23: printf("ETB"); break;
+        case 24: printf("CAN"); break;
+        case 25: printf("EM"); break;
+        case 26: printf("SUB"); break;
+        case 27: printf("ESC"); break;
+        case 28: printf("FS"); break;
+        case 29: printf("GS"); break;
+        case 30: printf("RS"); break;
+        case 31: printf("US"); break;
+        case 127: printf("DEL"); break;
+        default: printf("0x%02X", ch);
+    }
 }
 
 static void executeHelpCommand() {
@@ -219,21 +259,21 @@ static void printInstruction(struct MachineState* state, int address, bool padIn
 
     if (opcode < 4) {
         if (labelNames[argument] == NULL) {
-            printf("    M[0x%04X] =", argument);
+            printf("    M[0x%04X] = ", argument);
         } else if (strlen(labelNames[argument]) > 8) {
-            printf("    M[%c%c%c%c%c...] =", labelNames[argument][0], labelNames[argument][1], labelNames[argument][2], labelNames[argument][3], labelNames[argument][4]);
+            printf("    M[%c%c%c%c%c...] = ", labelNames[argument][0], labelNames[argument][1], labelNames[argument][2], labelNames[argument][3], labelNames[argument][4]);
         } else {
-            printf("    M[%s] =", labelNames[argument]);
+            printf("    M[%s] = ", labelNames[argument]);
         }
 
         unsigned char memoryValue = peekMemory(state, argument);
 
-        if (dataTypes[argument] == DataTypeChar && isPrintableChar(memoryValue)) {
-            printf(" '%c'", memoryValue);
+        if (dataTypes[argument] == DataTypeChar) {
+            printCharacterOrControlCharacter(memoryValue);
         } else if (dataTypes[argument] == DataTypeInt) {
-            printf(" %d", memoryValue);
+            printf("%d", memoryValue);
         } else {
-            printf(" 0x%02X", memoryValue);
+            printf("0x%02X", memoryValue);
         }
     }
 }
@@ -377,11 +417,7 @@ static void printMemory(struct MachineState* state, unsigned short address, int 
             printInstruction(state, address, true);
             break;
         case DataTypeChar:
-            if (isPrintableChar(memVal)) {
-                printf("'%c'", memVal);
-            } else {
-                printf("0x%02X", memVal);
-            }
+            printCharacterOrControlCharacter(memVal);
             break;
         case DataTypeInt:
             printf("%d", memVal);
@@ -446,12 +482,11 @@ static void executeListLabelsCommand() {
 }
 
 static void executeListRegistersCommand(struct MachineState* state) {
-    printf("A = 0x%02X", state->A);
+    printf("A = 0x%02X %d", state->A, state->A);
 
-    if (isPrintableChar(state->A)) {
-        printf(" '%c'", state->A);
-    } else {
-        printf(" %d", state->A);
+    if (state->A <= 127) {
+        putchar(' ');
+        printCharacterOrControlCharacter(state->A);
     }
 
     printf("    PC = 0x%04X", state->PC);
