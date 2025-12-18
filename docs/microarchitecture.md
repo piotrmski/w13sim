@@ -20,18 +20,18 @@ Control signals are used to facilitate the data flow between the components. A c
 
 Not underlined are level control signals, active during the high level of the clock signal. Underlined are impulse control signals, activated at the falling edge a clock cycle.
 
-- <u>incPC</u> - increments the value of PC by one,
-- <u>inPC</u> - loads the value from the address bus to PC,
+- <ins>incPC</ins> - increments the value of PC by one,
+- <ins>inPC</ins> - loads the value from the address bus to PC,
 - outPC - propagates the value of PC to the address bus,
-- <u>inIR_L</u> - loads the value from the data bus to the least significant 8 bits of the IR,
-- <u>inIR_H</u> - loads the value from the data bus to the most significant 8 bits of the IR,
+- <ins>inIR_L</ins> - loads the value from the data bus to the least significant 8 bits of the IR,
+- <ins>inIR_H</ins> - loads the value from the data bus to the most significant 8 bits of the IR,
 - outIR - propagates the value from the least significant 13 bits of IR to the address bus,
 - inALU - loads the value from the data bus to ALU,
 - set, not, add, and - selects the operation to be performed by the ALU between the value loaded from the data bus and the register A. Activation of these control signals is not determined by the state machine, instead by a demultiplexer using the third and second most significant bits of IR,
-- <u>inA</u> - loads the result of ALU computation into the register A,
+- <ins>inA</ins> - loads the result of ALU computation into the register A,
 - outA - propagates the value from the register A to the data bus,
-- <u>inAddr</u> - loads the value from the address bus into the Addr register,
-- <u>inData</u> - loads the value from the data bus into the Data register,
+- <ins>inAddr</ins> - loads the value from the address bus into the Addr register,
+- <ins>inData</ins> - loads the value from the data bus into the Data register,
 - outData - propagates the value from the Data register in the data bus,
 - rd - loads the value from the memory address in the Addr registers into the Data register,
 - wr - writes the data from the Data register to the memory at the address stored in the Addr register.
