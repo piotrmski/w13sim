@@ -70,7 +70,8 @@ Main features of the debugger:
 - listing the values of registers,
 - disassembling instructions,
 - stepping through instructions,
-- setting breakpoints.
+- setting breakpoints,
+- updating program memory and registers in runtime.
 
 ## Building
 

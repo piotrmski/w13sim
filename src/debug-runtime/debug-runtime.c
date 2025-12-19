@@ -26,6 +26,9 @@ enum Command {
     CommandListBreakpoints,
     CommandListLabels,
     CommandListRegisters,
+    CommandUpdateMemory,
+    CommandUpdateA,
+    CommandUpdatePC,
     CommandAddBreakpoint,
     CommandDeleteBreakpoint,
     CommandDeleteAllBreakpoints,
@@ -214,6 +217,9 @@ l X   - lists the memory value at X,\n\
 l X:Y - lists memory values from X to Y,\n\
 a     - lists all registered label names and their values,\n\
 r     - lists register A value, program counter value, and instruction at PC,\n\
+u X N - updates memory value at X to N,\n\
+ua N  - updates register A value to N,\n\
+upc X - updates PC value to X,\n\
 b     - adds a breakpoint at PC,\n\
 b X   - adds a breakpoint at X,\n\
 lb    - lists all breakpoints,\n\
@@ -227,7 +233,10 @@ Replace X and Y with one of the following:\n\
 - a number - absolute address,\n\
 - +C or -C where C is a number - address relative to program counter,\n\
 - a label name,\n\
-- L+C or L-C where L is a label name and C is a number - address relative to a label.\n");
+- L+C or L-C where L is a label name and C is a number - address relative to a label.\n\
+Replace N with one of the following:\n\
+- a number between 0 and 255,\n\
+- a character in single quotes '.\n");
 }
 
 static const char* getInstructionName(unsigned char opcode, bool pad) {
@@ -389,6 +398,19 @@ static struct Range parseAddressRangeArgument(struct MachineState* state, char* 
     return (struct Range) { start, end };
 }
 
+static unsigned char parseValueArgument(char* argument) {
+    if (argument[0] == '\'' && argument[1] != 0 && argument[2] == '\'' && argument[3] == 0) {
+        return argument[1];
+    } else {
+        int value = parseNumber(argument, "number value");
+        if (errno == 0 && (value < 0 || value > 255)) {
+            printf("Number %d is out of range for a number value.\n", value);
+            errno = ERANGE;
+        }
+        return value;
+    }
+}
+
 static void printMemory(struct MachineState* state, unsigned short address, int maxLabelLength, bool printValueOfInstructionHigherBit) {
     bool labelDefined = labelNames[address] != NULL;
 
@@ -502,6 +524,46 @@ static void executeListRegistersCommand(struct MachineState* state) {
     printf("\n");
 }
 
+static void executeUpdateMemoryCommand(struct MachineState* state, char* addressArgument, char* valueArgument) {
+    int address = parseAddressArgument(state, addressArgument);
+    if (address < 0) {
+        return;
+    } else if (address >= TIME_INTERFACE_ADDRESS) {
+        printf("Address 0x%04X is outside of program memory range.\n", address);
+        return;
+    }
+
+    unsigned char value = parseValueArgument(valueArgument);
+    if (errno != 0) {
+        errno = 0;
+        return;
+    }
+
+    state->memory[address] = value;
+    printf("Updated memory at to 0x%04X to 0x%02X.\n", address, value);
+}
+
+static void executeUpdateACommand(struct MachineState* state, char* argument) {
+    unsigned char value = parseValueArgument(argument);
+    if (errno != 0) {
+        errno = 0;
+        return;
+    }
+
+    state->A = value;
+    printf("Updated A value to 0x%02X.\n", value);
+}
+
+static void executeUpdatePCCommand(struct MachineState* state, char* argument) {
+    int address = parseAddressArgument(state, argument);
+    if (address < 0) {
+        return;
+    }
+
+    state->PC = address;
+    printf("Updated PC to 0x%04X.\n", address);
+}
+
 static void executeAddBreakpointCommand(struct MachineState* state, char* argument) {
     int address = parseAddressArgument(state, argument);
     if (address < 0) return;
@@ -553,6 +615,12 @@ static enum Command getCommand(char* commandName) {
         return CommandListLabels;
     } else if (stringsEqualCaseInsensitive(commandName, "R")) {
         return CommandListRegisters;
+    } else if (stringsEqualCaseInsensitive(commandName, "U")) {
+        return CommandUpdateMemory;
+    } else if (stringsEqualCaseInsensitive(commandName, "UA")) {
+        return CommandUpdateA;
+    } else if (stringsEqualCaseInsensitive(commandName, "UPC")) {
+        return CommandUpdatePC;
     } else if (stringsEqualCaseInsensitive(commandName, "B")) {
         return CommandAddBreakpoint;
     } else if (stringsEqualCaseInsensitive(commandName, "D")) {
@@ -573,7 +641,8 @@ static enum Command getCommand(char* commandName) {
 // Returns true if prompt interaction should continue, or false if simulation should resume
 static bool executeCommand(struct MachineState* state, char* fullCommand) {
     char* commandName = strtok(fullCommand, " \n");
-    char* argument = strtok(NULL, " \n");
+    char* arg1 = strtok(NULL, " \n");
+    char* arg2 = strtok(NULL, " \n");
     char* extra = strtok(NULL, " \n");
 
     if (commandName == NULL) {
@@ -588,16 +657,24 @@ static bool executeCommand(struct MachineState* state, char* fullCommand) {
     }
 
     switch (command) {
+        case CommandUpdateMemory:
+            if (extra != NULL) {
+                printf("Command \"%s\" doesn't take more than two arguments. Type \"h\" to list all commands.\n", commandName);
+                return true;
+            }
+            break;
         case CommandListMemory:
+        case CommandUpdateA:
+        case CommandUpdatePC:
         case CommandAddBreakpoint:
         case CommandDeleteBreakpoint:
-            if (extra != NULL) {
+            if (arg2 != NULL) {
                 printf("Command \"%s\" doesn't take more than one argument. Type \"h\" to list all commands.\n", commandName);
                 return true;
             }
             break;
         default:
-            if (argument != NULL) {
+            if (arg1 != NULL) {
                 printf("Command \"%s\" doesn't take any arguments. Type \"h\" to list all commands.\n", commandName);
                 return true;
             }
@@ -608,17 +685,23 @@ static bool executeCommand(struct MachineState* state, char* fullCommand) {
         case CommandHelp:
             executeHelpCommand(); break;
         case CommandListMemory:
-            executeListMemoryCommand(state, argument); break;
+            executeListMemoryCommand(state, arg1); break;
         case CommandListBreakpoints:
             executeListBreakpointsCommand(state); break;
         case CommandListLabels:
             executeListLabelsCommand(); break;
         case CommandListRegisters:
             executeListRegistersCommand(state); break; 
+        case CommandUpdateMemory:
+            executeUpdateMemoryCommand(state, arg1, arg2); break; 
+        case CommandUpdateA:
+            executeUpdateACommand(state, arg1); break; 
+        case CommandUpdatePC:
+            executeUpdatePCCommand(state, arg1); break; 
         case CommandAddBreakpoint:
-            executeAddBreakpointCommand(state, argument); break;
+            executeAddBreakpointCommand(state, arg1); break;
         case CommandDeleteBreakpoint:
-            executeDeleteBreakpointCommand(state, argument); break;
+            executeDeleteBreakpointCommand(state, arg1); break;
         case CommandDeleteAllBreakpoints:
             executeDeleteAllBreakpointsCommand(); break;
         case CommandContinue:
