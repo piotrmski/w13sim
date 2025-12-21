@@ -29,7 +29,7 @@ static void* readChar(void* _) {
     return NULL;
 }
 
-void startCharacterInput() {
+void startAsyncCharacterInput() {
     struct termios attr;
 
     tcgetattr(STDIN_FILENO, &attr);
@@ -44,7 +44,7 @@ void startCharacterInput() {
     pthread_create(&thread, NULL, readChar, NULL);
 }
 
-void endCharacterInput() {
+void endAsyncCharacterInput() {
     active = false;
 
     struct termios attr;

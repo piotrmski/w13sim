@@ -7,6 +7,7 @@ struct ProgramInput {
     bool debugMode;
     const char* binaryFilePath;
     const char* symbolsFilePath;
+    int clockFrequencyKiloHz;
 };
 
 struct ProgramInput getProgramInput(int argc, const char * argv[]);

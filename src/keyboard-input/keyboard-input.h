@@ -1,9 +1,9 @@
 #ifndef keyboard_input
 #define keyboard_input
 
-void startCharacterInput();
+void startAsyncCharacterInput();
 
-void endCharacterInput();
+void endAsyncCharacterInput();
 
 char getLastChar();
 

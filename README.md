@@ -22,16 +22,16 @@ All instructions are two words wide and follow the same format:
 - the 3 most significant bits are the opcode,
 - the other 13 bits are the instruction argument, which is an absolute memory address.
 
-| Instruction | Opcode | Description | Operation |
-| ----------- | ------ | ----------- | ----------|
-| `LD X`      | `000`  | Load from memory | - Loads \[X] into A<br/>- Increments PC by 2 |
-| `NOT X`     | `001`  | Bitwise NOT | - Loads bitwise complement of \[X] into A<br/>- Increments PC by 2 |
-| `ADD X`     | `010`  | Arithmetic ADD | - Performs arithmetic addition between \[X] and \[A]<br/>- Stores the result in A<br/>- Increments PC by 2 |
-| `AND X`     | `011`  | Bitwise AND | - Performs bitwise operation "AND" between \[X] and \[A]<br/>- Stores the result in A<br/>- Increments PC by 2 |
-| `ST X`      | `100`  | Store to memory | - Stores \[A] in memory at the address X<br/>- Increments PC by 2 |
-| `JMP X`     | `101`  | Unconditional jump | - Loads X into PC |
-| `JMN X`     | `110`  | Jump if negative | If the most significant bit of \[A] is set:<br/>&nbsp;&nbsp;&nbsp;&nbsp;- Loads X into PC<br/>Otherwise:<br/>&nbsp;&nbsp;&nbsp;&nbsp;- Increments PC by 2 |
-| `JMZ X`     | `111`  | Jump if zero | If all bits of \[A] are unset:<br/>&nbsp;&nbsp;&nbsp;&nbsp;- Loads X into PC<br/>Otherwise:<br/>&nbsp;&nbsp;&nbsp;&nbsp;- Increments PC by 2 |
+| Instruction | Opcode | Description | Operation | Clock cycles |
+| ----------- | ------ | ----------- | ----------| ------------ |
+| `LD X`      | `000`  | Load from memory | - Loads \[X] into A<br/>- Increments PC by 2 | 4 |
+| `NOT X`     | `001`  | Bitwise NOT | - Loads bitwise complement of \[X] into A<br/>- Increments PC by 2 | 4 |
+| `ADD X`     | `010`  | Arithmetic ADD | - Performs arithmetic addition between \[X] and \[A]<br/>- Stores the result in A<br/>- Increments PC by 2 | 4 |
+| `AND X`     | `011`  | Bitwise AND | - Performs bitwise operation "AND" between \[X] and \[A]<br/>- Stores the result in A<br/>- Increments PC by 2 | 4 |
+| `ST X`      | `100`  | Store to memory | - Stores \[A] in memory at the address X<br/>- Increments PC by 2 | 4 |
+| `JMP X`     | `101`  | Unconditional jump | - Loads X into PC | 3 |
+| `JMN X`     | `110`  | Jump if negative | If the most significant bit of \[A] is set:<br/>&nbsp;&nbsp;&nbsp;&nbsp;- Loads X into PC<br/>Otherwise:<br/>&nbsp;&nbsp;&nbsp;&nbsp;- Increments PC by 2 | 3 |
+| `JMZ X`     | `111`  | Jump if zero | If all bits of \[A] are unset:<br/>&nbsp;&nbsp;&nbsp;&nbsp;- Loads X into PC<br/>Otherwise:<br/>&nbsp;&nbsp;&nbsp;&nbsp;- Increments PC by 2 | 3 |
 
 \[X] refers to the value at memory address X; \[A] refers to the value in the register A.
 
@@ -53,10 +53,11 @@ This repository contains a reference W16 simulator that features terminal input/
 
 Run `w16asm path/to/program.bin` to run the simulator until ^C is pressed, or until a JMP instruction to the current address (unconditional infinite loop) is detected.
 
-Flags: 
+Options: 
 
+- `-c` or `--clock` followed by a number between 1 and 1000 - maximum clock frequency in kHz. Default is 1.
 - `-d` or `--debug` - launches the simulator in paused state and enables the debugger.
-- `-s` or `--symbols` followed by a path to a CSV file - supplies the debugger with names and purposes of memory addresses.
+- `-s` or `--symbols` followed by a path to a CSV file - supplies the debugger with names and contents of memory addresses.
 
 The symbols file is optionally produced by [the assembler](https://github.com/piotrmski/w16asm). It has the following columns:
 

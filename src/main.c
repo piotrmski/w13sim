@@ -50,6 +50,8 @@ int main(int argc, const char * argv[]) {
     fread(state.memory, sizeof(unsigned char), programLength, binaryFile);
     fclose(binaryFile);
 
+    state.clockPeriodMicroseconds = 1000 / input.clockFrequencyKiloHz;
+
     if (input.debugMode) {
         runDebug(&state, (char*) input.symbolsFilePath);
     } else {

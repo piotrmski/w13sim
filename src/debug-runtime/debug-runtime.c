@@ -738,25 +738,24 @@ void runDebug(struct MachineState* state, char* symbolsFilePath) {
 
     signal(SIGINT, handleSigInt);
 
-    startCharacterInput();
+    startAsyncCharacterInput();
 
     do {
         if (isPaused || isStepping || breakpoints[state->PC]) {
             isPaused = true;
             isStepping = false;
             unsigned long idleStartTime = getTimeMs();
-            endCharacterInput();
+            endAsyncCharacterInput();
             interactivePrompt(state);
-            startCharacterInput();
+            startAsyncCharacterInput();
             state->simulationIdleTimeMs += getTimeMs() - idleStartTime;
             isPaused = false;
         }
         
         step(state);
-        usleep(100); // TODO configurable clock
     } while (!state->isUnconditionalInfiniteLoop);
 
-    endCharacterInput();
+    endAsyncCharacterInput();
 
     printf("Unconditional infinite loop detected. Ending simulation.\n");
 }

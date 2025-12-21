@@ -2,11 +2,12 @@
 #include "../keyboard-input/keyboard-input.h"
 #include "../time/time.h"
 #include <stdio.h>
+#include <unistd.h> // POSIX
 
 struct MachineState getInitialState()
 {
     unsigned long now = getTimeMs();
-    return (struct MachineState) { false, { 0 }, 0, 0, now, now, 0 };
+    return (struct MachineState) { false, { 0 }, 0, 0, now, now, 0, 0 };
 }
 
 unsigned short peekInstruction(struct MachineState* state, unsigned short address) {
@@ -91,4 +92,9 @@ void step(struct MachineState* state)
     }
     
     state->PC %= 0x2000;
+
+    int clockCycles = opcode >= 5 // JMP, JMN, or JMZ
+        ? 3 : 4;
+
+    usleep(state->clockPeriodMicroseconds * clockCycles);
 }

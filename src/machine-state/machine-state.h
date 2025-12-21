@@ -15,6 +15,7 @@ struct MachineState {
     unsigned long simulationStartTimeMs;
     unsigned long simulationMeasuredTimeMs;
     unsigned long simulationIdleTimeMs;
+    int clockPeriodMicroseconds;
 };
 
 struct MachineState getInitialState();
